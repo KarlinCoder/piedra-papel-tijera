@@ -1,39 +1,69 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import WinsBanner from "./WinsBanner";
 
-export default function Game({ showGame }) {
+const selectionClassNames =
+  "text-xl bg-neutral-800 p-4 rounded-md w-[200px] text-center hover:cursor-pointer hover:bg-neutral-700 active:bg-neutral-800 select-none";
+
+export default function Game({ showGame, setShowGame }) {
   const ANSWERS = ["Piedra", "Papel", "Tijera"];
-  const [userSelection, setUserSelection] = useState("");
-  const [randomAnswer, setRandomAnswer] = useState("");
   const [thinking, setThinking] = useState(false);
   const [message, setMessage] = useState("");
-  const [status, setStatus] = useState("");
-
-  const selectionClassNames =
-    "text-xl bg-neutral-800 p-4 rounded-md w-[200px] text-center hover:cursor-pointer hover:bg-neutral-700 active:bg-neutral-800 select-none";
+  const [winsHistory, setWinsHistory] = useState([]);
+  const [button, setButton] = useState(false);
 
   const handleSelectionThinking = (selection) => {
-    setMessage("pensando...");
-    setUserSelection(selection);
     setThinking(true);
+    setMessage("pensando...");
+    setButton(false);
     setTimeout(() => {
-      setRandomAnswer(ANSWERS[Math.floor(Math.random() * ANSWERS.length)]);
-      console.log(randomAnswer);
+      const randomAnswer = ANSWERS[Math.floor(Math.random() * ANSWERS.length)];
+
+      let result = "";
+
       if (
-        (userSelection === "tijera" && randomAnswer === "papel") ||
-        (userSelection === "papel" && randomAnswer === "piedra") ||
-        (userSelection === "piedra" && randomAnswer === "tijera")
+        (selection === "Tijera" && randomAnswer === "Papel") ||
+        (selection === "Papel" && randomAnswer === "Piedra") ||
+        (selection === "Piedra" && randomAnswer === "Tijera")
       ) {
-        setStatus("ganado");
-      } else if (userSelection === randomAnswer) {
-        setStatus("empatado");
+        result = "ganado";
+      } else if (selection === randomAnswer) {
+        result = "empatado";
       } else {
-        setStatus("perdido");
+        result = "perdido";
+      }
+
+      if (result === "ganado") {
+        setWinsHistory([...winsHistory, 3]);
+      } else if (result === "empatado") {
+        setWinsHistory([...winsHistory, 2]);
+      } else if (result === "perdido") {
+        setWinsHistory([...winsHistory, 1]);
       }
 
       setMessage(
-        `Has ${status} el juego, sacaste ${userSelection} y el contrario ${randomAnswer}`
+        `Has ${result} el juego, sacaste ${selection} y el contrario ${randomAnswer}`
       );
-    }, 1000);
+      setButton(true);
+    }, 3000);
+  };
+
+  const handleRestartGame = () => {
+    if (winsHistory.length === 3) {
+      setThinking(false);
+      setButton(false);
+      setMessage("");
+      setWinsHistory([]);
+      setShowGame(false);
+
+      localStorage.setItem(
+        `score${localStorage.length}`,
+        winsHistory.toString()
+      );
+    } else {
+      setShowGame(true);
+      setThinking(false);
+      setMessage("");
+    }
   };
 
   return (
@@ -41,25 +71,25 @@ export default function Game({ showGame }) {
       <main
         className={`${
           showGame && !thinking ? "flex" : "hidden"
-        } flex-col text-slate-100 text-4xl gap-10 md:gap-5 jusitfy-center items-center`}
+        } flex-col text-slate-100 text-4xl gap-10 md:gap-5 justify-center items-center`}
       >
         <h2 className="text-3xl text-center">Elije:</h2>
         <div className="flex flex-wrap gap-2 w-fit justify-center items-center">
           <div
             className={selectionClassNames}
-            onClick={() => handleSelectionThinking("piedra")}
+            onClick={() => handleSelectionThinking("Piedra")}
           >
             Piedra
           </div>
           <div
             className={selectionClassNames}
-            onClick={() => handleSelectionThinking("papel")}
+            onClick={() => handleSelectionThinking("Papel")}
           >
             Papel
           </div>
           <div
             className={selectionClassNames}
-            onClick={() => handleSelectionThinking("pijera")}
+            onClick={() => handleSelectionThinking("Tijera")}
           >
             Tijera
           </div>
@@ -67,10 +97,26 @@ export default function Game({ showGame }) {
       </main>
 
       <section
-        className={`${thinking ? "inline-block" : "hidden"} text-slate-100`}
+        className={`${
+          thinking ? "inline-block" : "hidden"
+        } text-slate-100 text-center px-5`}
       >
-        {message}
+        {!button ? (
+          <div className="custom-loader"></div>
+        ) : (
+          <>
+            <p>{message}</p>
+            <button
+              className={`mt-6 bg-neutral-800 hover:bg-neutral-700 active:bg-neutral-800 px-6 py-2 rounded-md`}
+              onClick={handleRestartGame}
+            >
+              Aceptar
+            </button>
+          </>
+        )}
       </section>
+
+      <WinsBanner showGame={showGame} data={winsHistory} />
     </>
   );
 }
